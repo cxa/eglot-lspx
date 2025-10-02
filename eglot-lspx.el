@@ -121,15 +121,20 @@ fall back to the system-installed location if not found."
             (dir (project-root project))
             (is-prog-mode (seq-some (lambda (m) (provided-mode-derived-p m 'prog-mode))
                                     managed-modes))
+            (is-sgml-mode (seq-some (lambda (m) (provided-mode-derived-p m 'sgml-mode))
+                                    managed-modes))
             (lspx))
         (if (not can-inject)
             (message "Can't use lspx with the contact: %s" contact)
 
-          ;; css modes are also derived from `prog-mode'
-          (when (and (eglot-lspx--tailwindcss-project-p dir) is-prog-mode)
+          ;; Note: css modes are also derived from `prog-mode'
+          (when (and (eglot-lspx--tailwindcss-project-p dir)
+                     (or is-prog-mode is-sgml-mode))
             (add-to-list 'lspx "tailwindcss-language-server --stdio"))
+
           (when (and (eglot-lspx--biome-project-p dir) is-prog-mode)
             (add-to-list 'lspx (concat (eglot-lspx--find-biome-executable dir) " lsp-proxy")))
+
           (when (and (eglot-lspx--eslint-project-p dir) is-prog-mode)
             (add-to-list 'lspx "vscode-eslint-language-server --stdio"))
           
