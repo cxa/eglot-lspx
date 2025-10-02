@@ -22,3 +22,7 @@ Clone this repository, add the `eglot-lspx.el` file (or the package directory) t
 ```elisp
 (add-to-list 'load-path "/path/to/eglot-lspx")
 ```
+
+## Note
+
+To make published diagnostics work, You must use the `lspx` fork at <https://github.com/cxa/lspx>.

@@ -183,11 +183,19 @@ which is not a standard LSP server but is tailored to VS Code."
                 :experimental (ht))
           orig-resp))
 
-(defun eglot-lspx--visiting-file-p (item)
-  "Check whether `:scopeUri` of ITEM is a visiting buffer."
-  (and-let* ((uri (plist-get item :scopeUri))
-             (file (eglot-uri-to-path uri))
-             ((find-buffer-visiting file)))))
+;; Steal `find-it' from eglot.el
+(defun eglot-lspx--find-it (path server)
+  "Find butter with PATH in SERVER.
+PATH can be an uri or absolute path."
+  (when (string-prefix-p "file:" path)
+    (setq path (eglot-uri-to-path path)))
+  (cl-loop for b in (eglot--managed-buffers server)
+           when (with-current-buffer b
+                  (equal (car eglot--TextDocumentIdentifier-cache) path))
+           return b))
+
+(defvar-local eglot-lspx--diagnostics nil
+  "Store diagnostics from different agents.")
 
 (with-eval-after-load 'eglot
   (advice-add 'eglot--connect :filter-args #'eglot-lspx/eglot--connect/filter-args)
@@ -199,9 +207,32 @@ which is not a standard LSP server but is tailored to VS Code."
     (server (_method (eql workspace/configuration)) &key items)
     (let ((resps (cl-call-next-method)))
       (if (and (eglot-lspx--eslint-server-p server)
-               (seq-some #'eglot-lspx--visiting-file-p items))
+               (seq-some (lambda (item)
+                           (and-let* ((uri (plist-get item :scopeUri))
+                                      ((eglot-lspx--find-it uri server)))))
+                         items))
           (apply #'vector (seq-map #'eglot-lspx--eslint-workspace-configuration resps))
-        resps))))
+        resps)))
+
+  ;; `textDocument/publishDiagnostics' comes from different agents, we
+  ;; need to combine them to avoid overlaps.  To make this work, you
+  ;; must use the lspx fork at https://github.com/cxa/lspx
+  (cl-defmethod eglot-handle-notification :around
+    (server (method (eql textDocument/publishDiagnostics)) &rest keys)
+    (if-let* ((lspx-agent (plist-get keys :_lspx_agent))
+              (uri (plist-get keys :uri))
+              (diagnostics (plist-get keys :diagnostics))
+              (buffer (eglot-lspx--find-it uri server)))
+        (with-current-buffer buffer
+          (setq-local eglot-lspx--diagnostics
+                      (plist-put eglot-lspx--diagnostics lspx-agent diagnostics #'string=))
+          (funcall #'cl-call-next-method server method
+                   :uri uri
+                   :diagnostics (apply #'vconcat
+                                       (cl-loop for (_agent diagnostics)
+                                                on eglot-lspx--diagnostics by #'cddr
+                                                collect diagnostics))))
+      (cl-call-next-method))))
 
 
 (provide 'eglot-lspx)
