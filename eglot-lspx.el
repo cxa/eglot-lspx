@@ -130,20 +130,26 @@ fall back to the system-installed location if not found."
           ;; Note: css modes are also derived from `prog-mode'
           (when (and (eglot-lspx--tailwindcss-project-p dir)
                      (or is-prog-mode is-sgml-mode))
-            (add-to-list 'lspx "tailwindcss-language-server --stdio"))
+            (setq lspx (append '("--lsp" "tailwindcss-language-server --stdio") lspx)))
 
           (when (and (eglot-lspx--biome-project-p dir) is-prog-mode)
-            (add-to-list 'lspx (concat (eglot-lspx--find-biome-executable dir) " lsp-proxy")))
+            (setq lspx (append `("--lsp" ,(concat (eglot-lspx--find-biome-executable dir)
+                                                  " lsp-proxy"))
+                               lspx)))
 
           (when (and (eglot-lspx--eslint-project-p dir) is-prog-mode)
-            (add-to-list 'lspx "vscode-eslint-language-server --stdio"))
+            (setq lspx (append '("--lsp" "vscode-eslint-language-server --stdio") lspx)))
           
           (when lspx
             (let* ((initopts (memq :initializationOptions contact))
                    (progargs (if initopts (butlast contact (length initopts)) contact)))
-              (add-to-list 'lspx (string-join progargs " "))
-              (setq lspx (mapcan (lambda (x) (list "--lsp" x)) lspx))
-              (add-to-list 'lspx "lspx")
+              ;; for `emacs-lsp-booster'
+              (setq progargs
+                    (if-let* ((i (cl-position "--" progargs :test #'string=)))
+                        `(,@(cl-subseq progargs 0 (1+ i)) "lspx" "--lsp"
+                          ,(string-join (cl-subseq progargs (1+ i)) " "))
+                      `("lspx" "--lsp" ,(string-join progargs " "))))
+              (setq lspx (append progargs lspx))
               (when initopts (setq lspx (append lspx initopts)))
               (setf (nth 3 args) lspx)))))))
   args)
