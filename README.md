@@ -25,4 +25,5 @@ Clone this repository, add the `eglot-lspx.el` file (or the package directory) t
 
 ## Note
 
-To make published diagnostics work, You must use the `lspx` fork at <https://github.com/cxa/lspx>.
+- To make published diagnostics work, you must use the `lspx` fork at <https://github.com/cxa/lspx>
+- Speed up Tailwind CSS completion: <https://github.com/cxa/cape-tailwindcss>
