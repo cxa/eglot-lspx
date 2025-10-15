@@ -166,33 +166,38 @@ fall back to the system-installed location if not found."
   "Add the required configurations to ORIG for `vscode-eslint`,
 which is not a standard LSP server but is tailored to VS Code."
   ;; TODO: make customizations?
-  (append (list :validate "probe"
-                :packageManager "npm" ;; Seems not relevant.
-                :useESLintClass t
-                :useRealpaths t
-                
-                :codeAction (list :disableRuleComment (list :enable t
-                                                            :location "separateLine")
-                                  :showDocumentation (list :enable t))
+  (let ((isFlatConfig (if (eglot-lspx--locate-dominating-file (project-root (project-current))
+                                                              "eslint.config.*")
+                          t
+                        :json-false)))
+    (append (list :validate "probe"
+                  :packageManager "npm" ;; Seems not relevant.
+                  :useESLintClass t
+                  :useFlatConfig isFlatConfig
+                  :useRealpaths t
+                  
+                  :codeAction (list :disableRuleComment (list :enable t
+                                                              :location "separateLine")
+                                    :showDocumentation (list :enable t))
 
-                :codeActionOnSave (list :enable t :mode "all")
-                :format t
-                :quiet :json-false
-                :onIgnoredFiles "off"
-                :options  (ht)
-                :rulesCustomizations []
-                :run "onType"
-                :problems (list :shortenToSingleLine t)
-                :nodePath (executable-find "node")
+                  :codeActionOnSave (list :enable t :mode "all")
+                  :format t
+                  :quiet :json-false
+                  :onIgnoredFiles "off"
+                  :options  (ht)
+                  :rulesCustomizations []
+                  :run "onType"
+                  :problems (list :shortenToSingleLine t)
+                  :nodePath (executable-find "node")
 
-                :workspaceFolder
-                (list :uri (eglot-path-to-uri
-                            (project-root (eglot--project (eglot-current-server))))
-                      :name (eglot--project-nickname (eglot-current-server)))
-                
-                ;; required even empty
-                :experimental (ht))
-          orig-resp))
+                  :workspaceFolder
+                  (list :uri (eglot-path-to-uri
+                              (project-root (eglot--project (eglot-current-server))))
+                        :name (eglot--project-nickname (eglot-current-server)))
+                  
+                  ;; required even empty
+                  :experimental (list :useFlatConfig isFlatConfig))
+            orig-resp)))
 
 ;; Steal `find-it' from eglot.el
 (defun eglot-lspx--find-it (path server)
