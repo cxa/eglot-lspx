@@ -25,6 +25,16 @@
 ;;; Code:
 
 (require 'ht)
+(require 'eglot)
+
+(defcustom eglot-lspx-eslint-activatable #'eglot-lspx--eslint-activatable
+  "Activatable test function for ESLint."
+  :type 'function)
+
+(defun eglot-lspx--eslint-activatable (langids)
+  (let ((id-keywords '("javascript" "typescript" "svelte" "vue")))
+    (seq-some (lambda (kw) (seq-contains-p langids kw #'string-search))
+              id-keywords)))
 
 (defun eglot-lspx--locate-dominating-file (dir regexp)
   "Locate REGEXP in DIR."
@@ -109,7 +119,7 @@ fall back to the system-installed location if not found."
 
 (defun eglot-lspx/eglot--connect/filter-args (args)
   "Composite arguments for lspx."
-  (cl-destructuring-bind (managed-modes project _class contact _language-ids) args
+  (cl-destructuring-bind (managed-modes project _class contact language-ids) args
     (when (and contact
                ;; skip reconnection
                (not (keywordp (car contact))))
@@ -137,7 +147,8 @@ fall back to the system-installed location if not found."
                                                   " lsp-proxy"))
                                lspx)))
 
-          (when (and (eglot-lspx--eslint-project-p dir) is-prog-mode)
+          (when (and (eglot-lspx--eslint-project-p dir)
+                     (funcall eglot-lspx-eslint-activatable language-ids))
             (setq lspx (append '("--lsp" "vscode-eslint-language-server --stdio") lspx)))
           
           (when lspx
