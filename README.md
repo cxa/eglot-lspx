@@ -2,7 +2,7 @@
 
 Automatically run multiple LSP servers simultaneously with [lspx](https://github.com/thefrontside/lspx) for Eglot. Currently supports `tailwindcss-language-server`, `biome`, and `vscode-eslint-language-server`.
 
-**Important**: The built-in Eglot has a bug that prevents `tailwindcss-language-server` from working. You must install the development version of Eglot from <https://elpa.gnu.org/devel/index.html> if you're working with Tailwind CSS.
+**Important:** The built-in Eglot in Emacs 30 has a bug that prevents the `tailwindcss-language-server` from working. If you use Tailwind CSS, either upgrade Eglot by running `eglot-upgrade-eglot`, or use Emacs 31 or later.
 
 ## Install
 
